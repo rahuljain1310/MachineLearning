@@ -16,7 +16,6 @@ N = X.shape[0]
 plt.scatter(X,Y)
 plt.show()
 
-## Conclusion :-
 ## Odd Function With 2 Maxima and 2 Minima - 5 Degree Function 
 
 ### =======================================================================================================
@@ -35,6 +34,13 @@ RegGradient = lambda W: np.concatenate(([0],W[1:]))
 def getDesignMatrix (X,Deg):
   polynomial = lambda x: [pow(x,i) for i in range(Deg+1)]
   return np.array(list(map(polynomial,X)))
+
+def GetRMSProp(Beta,Vw,grad):
+  Vw = (Beta*Vw)+(1-Beta)*np.square(grad)
+  Deno = np.sqrt(Vw)+ 0.001
+  RMSprop = grad/Deno
+  return Vw,RMSprop
+
 
 ### =======================================================================================================
 ### Moore Inverse
@@ -58,16 +64,26 @@ for i in range(1,10):
 plt.plot(LossM)
 plt.show()
 
-#-- Conclusion:- 
+### =======================================================================================================
+### Conclusion, Results and Visualization
+### =======================================================================================================
+
 #-- From Moore Inverse We get that the best fit lies for M = 5
+
+print("Visualization : Moore Penrove.")
 
 M = 5
 Xm = getDesignMatrix(X,M)
 W = getMPInverse(Xm,Y)
 Yp = getYpredict(W,Xm)
 Error,loss = Totalloss(Yp,Y)
+NoiseMean = np.mean(Error)
+NoiseDeviation = math.sqrt(np.var(Error))
 
-print(W,loss)
+print("Weights: ",W)
+print("Loss: ",loss)
+print("Noise Mean: ", NoiseMean)
+print("Noise Deviation", NoiseDeviation)
 
 plt.scatter(X,Yp,cmap="red")
 plt.scatter(X,Y,cmap="yellow")
@@ -80,55 +96,78 @@ plt.show()
 ### Gradient Descent Training Model
 ### =======================================================================================================
 
-### HyperParameters ###
-M = 5
-Iterations = 2000
-alpha = 0.002
-Lamda = 0.001
-
-def GradientDescent (Xm,Y,M,BatchSize,ShowGraph=False):
-  W = np.random.rand(M+1)/1000                            ## Initilization of Weights, W
+def GradientDescent (Xm,Y,M,BatchSize,Iterations=2000,alpha=0.001,ShowGraph=False):
+  MinLoss = math.inf
+  OptimalW = None
   TotalBatch = math.ceil(Xm.shape[0]/BatchSize)           ## Get Total Batches To divide Into
   XBatch = np.array_split(Xm,TotalBatch)                  ## Create Batches
   YBatch = np.array_split(Y,TotalBatch)
-  LossIteration = []
 
-  for i in range(Iterations):
-    for j in range(TotalBatch):
-      # -- Mini Batch Gradient Descent -- 
-      Yp = getYpredict(W,XBatch[j])
-      E,_ = Totalloss(Yp,YBatch[j])
-      grad = E.dot(XBatch[j]) # + 2*RegGradient(W)
-      W = W - alpha*grad
-      # -- Calculating Loss After Each Iteration -- 
-      Yp = getYpredict(W,Xm)
-      _,loss = Totalloss(Yp,Y)
-      LossIteration.append(loss)
+  for K in range(10):
+    W = 5*np.random.rand(M+1)                              ## Initilization of Weights, W
+    LossIteration = []
+    loss = math.inf
 
-  if ShowGraph:
-    plt.plot(LossIteration)
-    plt.show()
+    for i in range(Iterations):
+      for j in range(TotalBatch):
+        # -- Mini Batch Gradient Descent -- 
+        Yp = getYpredict(W,XBatch[j])
+        E,loss = Totalloss(Yp,YBatch[j])
+        grad = E.dot(XBatch[j])
+        W = W-alpha*grad
+        # -- Calculating Loss After Each Iteration -- 
+        Yp = getYpredict(W,Xm)
+        E,loss = Totalloss(Yp,Y)
+        LossIteration.append(loss)
 
-  return W
+    if loss<MinLoss:
+      MinLoss = loss
+      OptimalW = W
+      if ShowGraph:
+        plt.plot(LossIteration)
+        plt.show()
 
-MinLoss = math.inf
-Error = None   
-WOptimal = None
+  return OptimalW
+
+### HyperParameters ###
+M = 5
 Xm = getDesignMatrix(X,M)                       ## Get Polynomial Features
 
-for batchSize in range(100,101):
-  W = GradientDescent(Xm,Y,M,batchSize,False)
+alpha = 0.001
+Lamda = 0.001
+
+MinLoss = math.inf
+WOptimal = None
+
+for batchSize in range(1,101):
+  W = GradientDescent(Xm,Y,M,100,Iterations=1000,ShowGraph = False)
   error, loss = Totalloss(getYpredict(W,Xm),Y)
   if(loss<MinLoss):
-    OptimalW = W
+    WOptimal = W
     MinLoss = loss
-    Error = error
-
 
 ### =======================================================================================================
 ### Visualization of Noise
 ### =======================================================================================================
 
-print(W,MinLoss)
-plt.hist(Error,bins=20)
+print("Visualization : Gradient Descent.")
+
+Yp = getYpredict(WOptimal,Xm)
+error,loss = Totalloss(Yp,Y)
+print(WOptimal,loss)
+
+NoiseMean = np.mean(error)
+NoiseDeviation = math.sqrt(np.var(error))
+
+print("Weights: ",WOptimal)
+print("Loss: ",loss)
+print("Noise Mean: ", NoiseMean)
+print("Noise Deviation", NoiseDeviation)
+
+
+plt.scatter(X,Yp,cmap="red")
+plt.scatter(X,Y,cmap="yellow")
+plt.show()
+
+plt.hist(error)
 plt.show()
