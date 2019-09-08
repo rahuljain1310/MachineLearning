@@ -25,7 +25,7 @@ plt.show()
 #-- Functions --
 def Totalloss(Ypredict,Y):
   Error = Ypredict-Y
-  return Error,np.sum(np.square(Error))/len(Y)
+  return Error,np.mean(np.square(Error))
 
 #-- Operators --
 getYpredict = lambda W,X : X.dot(W.T)
@@ -37,7 +37,7 @@ def getDesignMatrix (X,Deg):
 
 def GetRMSProp(Beta,Vw,grad):
   Vw = (Beta*Vw)+(1-Beta)*np.square(grad)
-  Deno = np.sqrt(Vw)+ 0.001
+  Deno = np.sqrt(Vw)+ 1e-8
   RMSprop = grad/Deno
   return Vw,RMSprop
 
@@ -103,8 +103,9 @@ def GradientDescent (Xm,Y,M,BatchSize,Iterations=2000,alpha=0.001,ShowGraph=Fals
   XBatch = np.array_split(Xm,TotalBatch)                  ## Create Batches
   YBatch = np.array_split(Y,TotalBatch)
 
-  for K in range(10):
+  for K in range(100):
     W = 5*np.random.rand(M+1)                              ## Initilization of Weights, W
+    Vw = np.zeros(M+1,dtype=float)
     LossIteration = []
     loss = math.inf
 
@@ -114,6 +115,7 @@ def GradientDescent (Xm,Y,M,BatchSize,Iterations=2000,alpha=0.001,ShowGraph=Fals
         Yp = getYpredict(W,XBatch[j])
         E,loss = Totalloss(Yp,YBatch[j])
         grad = E.dot(XBatch[j])
+        Vw,grad = GetRMSProp(0.9,Vw,grad)
         W = W-alpha*grad
         # -- Calculating Loss After Each Iteration -- 
         Yp = getYpredict(W,Xm)
@@ -139,8 +141,8 @@ Lamda = 0.001
 MinLoss = math.inf
 WOptimal = None
 
-for batchSize in range(1,101):
-  W = GradientDescent(Xm,Y,M,100,Iterations=1000,ShowGraph = False)
+for batchSize in range(100,101):
+  W = GradientDescent(Xm,Y,M,batchSize,Iterations=10000,ShowGraph = False)
   error, loss = Totalloss(getYpredict(W,Xm),Y)
   if(loss<MinLoss):
     WOptimal = W
@@ -154,7 +156,6 @@ print("Visualization : Gradient Descent.")
 
 Yp = getYpredict(WOptimal,Xm)
 error,loss = Totalloss(Yp,Y)
-print(WOptimal,loss)
 
 NoiseMean = np.mean(error)
 NoiseDeviation = math.sqrt(np.var(error))
