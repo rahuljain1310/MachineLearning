@@ -57,7 +57,7 @@ for i in range(1,10):
   Xm = getDesignMatrix(X,i)
   W = getMPInverse(Xm,Y)
   Yp = getYpredict(W,Xm)
-  Error,loss = Totalloss(Yp,Y)
+  _,loss = Totalloss(Yp,Y)
   LossM.append(loss)
 
 ## Visualization of LossM
